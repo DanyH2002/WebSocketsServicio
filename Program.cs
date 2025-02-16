@@ -11,7 +11,11 @@ namespace WebSocketsServicio.API
 {
     internal class Program
     {
+<<<<<<< HEAD
         private static readonly WebSocketServer server = new WebSocketServer("ws://192.168.40.113:9001"); // es el nombre del servicio
+=======
+        private static readonly WebSocketServer server = new WebSocketServer("192.168.100.30:9001"); // es el nombre del servicio
+>>>>>>> d6b8693 (antes de examen)
         private static readonly List<IWebSocketConnection> users = new List<IWebSocketConnection>(); //lista de clientes conectdos
 
         // Lista de los partidos politicos -- mio
