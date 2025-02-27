@@ -16,30 +16,26 @@ namespace WebSocketsServicio.API.Models
 
     public enum ActionType
     {
-        /*crear_partido,
-        cambiar_nombre_partido,
-        borrar_partido,
-        voto_partido,
-        obtener_partidos*/
+        create,
         join,
         leave,
         message,
+        // lista de rooms
         rooms
     }
 
     public class Value
     {
-        //public Guid? Id { get; set; }
-
         public string Name { get; set; }
+        public string? UserName { get; set; }
         public string? Msg { get; set; }
         // lista de rooms
         public List<Room>? Rooms { get; set; }
 
-
-        public Value(string name, string? msg, List<Room>? rooms)
+        public Value(string name, string? userName, string? msg, List<Room>? rooms)
         {
             Name = name;
+            UserName = userName;
             Msg = msg;
             Rooms = rooms;
         }
@@ -49,10 +45,13 @@ namespace WebSocketsServicio.API.Models
     {
         public string RoomName { get; set; }
         public int User { get; set; }
-        public Room(string? roomName, int user)
+        // lista de miembros de rooms
+        public List<string>? Members { get; set; } 
+        public Room(string? roomName, int user, List<string>? members)
         {
             RoomName = roomName;
             User = user;
+            Members = members;
         }
     }
 

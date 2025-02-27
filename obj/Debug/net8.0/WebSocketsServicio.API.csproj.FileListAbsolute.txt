@@ -16,3 +16,4 @@
 /Users/huldadanielacrisantoluna/Documents/SPropietarios/WebSocketsServicio.API/WebSocketsServicio.API/bin/Debug/net8.0/Fleck.dll
 /Users/huldadanielacrisantoluna/Documents/SPropietarios/WebSocketsServicio.API/WebSocketsServicio.API/obj/Debug/net8.0/WebSocke.594A695C.Up2Date
 /Users/huldadanielacrisantoluna/Documents/SPropietarios/WebSocketsServicio.API/WebSocketsServicio.API/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/huldadanielacrisantoluna/Documents/SPropietarios/WebSocketsServicio.API/WebSocketsServicio.API/obj/Debug/net8.0/WebSocketsServicio.API.sourcelink.json
