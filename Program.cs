@@ -1,5 +1,4 @@
-﻿using WebSocketsServicio.API.Controllers;
-using WebSocketsServicio.API.Models;
+﻿using WebSocketsServicio.API.Models;
 using System.Text.Json;
 using Fleck;
 using Newtonsoft.Json;
@@ -8,221 +7,88 @@ namespace WebSocketsServicio.API
 {
     internal class Program
     {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        private static readonly WebSocketServer server = new WebSocketServer("ws://192.168.40.113:9001"); // es el nombre del servicio
-=======
-        private static readonly WebSocketServer server = new WebSocketServer("192.168.100.30:9001"); // es el nombre del servicio
->>>>>>> d6b8693 (antes de examen)
-=======
-        private static readonly WebSocketServer server = new WebSocketServer("ws://192.168.40.114:9001"); // es el nombre del servicio
->>>>>>> 6d4f831 (1er paricial)
-        private static readonly List<IWebSocketConnection> users = new List<IWebSocketConnection>(); //lista de clientes conectdos
-        // Diccionario para el nombres de usuarios
-        private static readonly Dictionary<IWebSocketConnection, string> usersName = new Dictionary<IWebSocketConnection, string>();
-        // Dicionario 
-        private static readonly Dictionary<string, List<IWebSocketConnection>> rooms = new Dictionary<string, List<IWebSocketConnection>>();
+        private static readonly WebSocketServer server = new WebSocketServer("ws://172.16.10.212:9001");
+        //private static readonly List<IWebSocketConnection> users = new List<IWebSocketConnection>();
+        private static readonly List<ConnectionModel> users = new List<ConnectionModel>();
+        private static readonly Dictionary<string, RoomModel> rooms = new Dictionary<string, RoomModel>();
+
+
         static void Main(string[] args)
         {
-            server.Start(connection => //* cliente que se conecta
+            // Inicia el servidor WebSocket
+            server.Start(socket =>
             {
-                connection.OnOpen = () =>
+                // Evento cuando un cliente se conecta
+                socket.OnOpen = () =>
                 {
-                    users.Add(connection); //? Agregar el cliente a la lista de clientes conectados
-                    Console.WriteLine($"Join: {connection.ConnectionInfo.Id}");
-                    SendRoomsOnOpen(connection);
+                    var ConnectionModel = new ConnectionModel(socket.ConnectionInfo.Path, socket);
+                    users.Add(ConnectionModel);
+                    Console.WriteLine($"join: {socket.ConnectionInfo.Path}");
+                    //users.Add(connection);
+                    // SendRoomsOnOpen(connection);
                 };
 
-                connection.OnClose = () =>
+                // Evento cuando un cliente se desconecta
+                socket.OnClose = () =>
                 {
-                    users.Remove(connection); //? Eliminar el cliente de la lista de clientes conectados
-                    usersName.Remove(connection); //? Eliminar el nombre del usuario
-                    foreach (var room in rooms.Values)
-                    {
-                        // Eliminar el cliente de todas las salas
-                        room.Remove(connection);
-                    }
-                    SendRooms(); //? Enviar la lista de salas a todos los clientes
-                    Console.WriteLine($"Leave: {connection.ConnectionInfo.Id}");
+                    Console.WriteLine($"Leave: {socket.ConnectionInfo.Id}");
+                    //users.Remove(connection);
                 };
 
-                connection.OnMessage = (string entry) =>
+                // Evento cuando el servidor recibe un mensaje de un cliente
+                socket.OnMessage = (string mensaje_del_cliente) =>
                 {
-                    try
+                    /*EntryModel entryModel = JsonConvert.DeserializeObject<EntryModel>(mensaje_del_cliente);
+                    foreach (IWebSocketConnection user in users)
                     {
-                        EntryModel entryModel = JsonConvert.DeserializeObject<EntryModel>(entry);
-                        Handle(entryModel, connection);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error: {ex.Message}");
-                    }
+                        if (connection != user)
+                        {
+                            var message = new
+                            {
+                                Id = entryModel.Id,
+                                Color = entryModel.Color
+                            };
+                            string jsonMessage = JsonConvert.SerializeObject(message);
+                            user.Send(jsonMessage);
+                        }
+                    }*/
+
+                    SendRoomsInfo(socket, mensaje_del_cliente);
                 };
             });
 
-            Console.ReadLine(); // para que este corriendo el servicio
+            // mantiene la aplicacion en ejecucion hasta que se presione enter 
+            Console.ReadLine();
         }
-
-        private static void Handle(EntryModel entry, IWebSocketConnection connection)
+        private static void SendRoomsInfo(IWebSocketConnection socket, string roomName)
         {
-            switch (entry.Action_Type)
+            // Ejemplo de rooms 
+            rooms.Add("room1", new RoomModel("room1", "1234"));
+            rooms.Add("room2", new RoomModel("room2", "5678"));           
+            RoomModel room = rooms[roomName];
+            // Si la room no existe, enviar un mensaje de error
+            if (room == null)
             {
-                case ActionType.join:
-                    Join(entry.Value.Name, connection, entry.Value.UserName);
-                    break;
-                case ActionType.leave:
-                    Leave(entry.Value.Name, connection, entry.Value.UserName);
-                    break;
-                case ActionType.message:
-                    Message(entry.Value, connection);
-                    break;
-                case ActionType.create:
-                    Create(entry.Value.Name, connection, entry.Value.UserName);
-                    break;
-                default:
-                    break;
-            }
-        }
-        private static void Create(string nameRoom, IWebSocketConnection connection, string userName)
-        {
-            // Verificar si la sala ya existe
-            if (rooms.ContainsKey(nameRoom))
-            {
-                connection.Send("La sala ya existe");
-                return;
-            }
-            // Crear la sala
-            rooms.Add(nameRoom, new List<IWebSocketConnection>());
-            // Enviar la lista de salas a todos los clientes
-            SendRooms();
-            // Enviar mensaje de creación de sala
-            Console.WriteLine($"User: {userName} con ID {connection.ConnectionInfo.Id} Create room: {nameRoom}");
-            connection.Send("Sala creada por " + userName);
-            Notification("El usuario " + userName + " ha creado la sala " + nameRoom);
-        }
-        private static void Join(string nameRoom, IWebSocketConnection connection, string userName)
-        {
-            // Verificar si esta la sala
-            if (!rooms.ContainsKey(nameRoom))
-            // mandar mensaje de que la sala no existe y salir
-            {
-                connection.Send("La sala no existe");
-                return;
-            }
-            // Verificar si el cliente ya esta en la sala
-            if (rooms[nameRoom].Contains(connection))
-            {
-                connection.Send("Ya estas en la sala");
-                return;
-            }
-            // Agregar el cliente a la sala
-            rooms[nameRoom].Add(connection);
-            usersName[connection] = userName;
-            // Enviar la lista de salas a todos los clientes
-            SendRooms();
-            Console.WriteLine($"User:  {userName} con ID {connection.ConnectionInfo.Id} Join to room: {nameRoom}");
-            Notification("El usuario " + userName + " se ha unido a la sala " + nameRoom);
-        }
-        private static void Leave(string nameRoom, IWebSocketConnection connection, string userName)
-        {
-            // Verificar si esta la sala
-            if (!rooms.ContainsKey(nameRoom)) return;
-            // Saber si esta dentro de la sala 
-            if (rooms[nameRoom].Contains(connection))
-            {
-                rooms[nameRoom].Remove(connection); // Eliminar el cliente de la sala
-                SendRooms(); // Enviar la lista de salas a todos los clientes
-                Console.WriteLine($"User: {userName} con ID {connection.ConnectionInfo.Id} Leave to room: {nameRoom}");
-                Notification("El usuario " + userName + " ha dejado la sala " + nameRoom);
-            }
-        }
-        private static void Message(Value value, IWebSocketConnection connection)
-        {
-            // Verificar si esta la sala
-            if (!rooms.ContainsKey(value.Name)) return;
-            // Verificar si el cliente esta en la sala
-            if (!rooms[value.Name].Contains(connection)) return;
-            // Enviar el mensaje a todos los clientes de la sala
-            foreach (IWebSocketConnection client in rooms[value.Name])
-            {
-                // Enviar el mensaje a todos los clientes de la sala, pero no al cliente que envio el mensaje
-                if (client != connection)
+                var message = new
                 {
-                    var message = new
-                    {
-                        Action_Type = "message",
-                        Value = new
-                        {
-                            Name = value.Name, //? Nombre de la sala
-                            Msg = $"{usersName[connection]}: {value.Msg}" //? Nombre del usuario que envia el mensaje y el mensaje
-                        }
-                    };
-
-                    string jsonMessage = JsonConvert.SerializeObject(message);
-                    client.Send(jsonMessage); // Enviar la cadena JSON
-                    //client.Send(value.Msg);
-                }
+                    Type = "error",
+                    Message = "Room not found"
+                };
+                string jsonMessage = JsonConvert.SerializeObject(message);
+                socket.Send(jsonMessage);
             }
-        }
-        private static void SendRoomsOnOpen(IWebSocketConnection connection) //* Enviar las rooms al cliente que se conecta
-        {
-            // para las rooms dinamicas
-            var roomsList = rooms.Select(room => new
+            else
             {
-                RoomName = room.Key,  //? Nombre de la sala
-                User = room.Value.Count, //? Contar los usuarios en la sala
-                Members = room.Value.Select(
-                    list => usersName.ContainsKey(list) ? usersName[list] : "Anonimo"
-                    ).ToArray() //? lista de miembros de rooms
-            }).ToArray();
-            var message = new
-            {
-                Action_Type = "rooms",
-                Value = new
+                // Si la room existe, enviar la info de la room
+                var message = new
                 {
-                    Name = "",
-                    Msg = "",
-                    Rooms = roomsList
-                }
-            };
-            string jsonMessage = JsonConvert.SerializeObject(message);
-            connection.Send(jsonMessage);
-        }
-        private static void SendRooms() //* Enviar las rooms actualizadas a todos los clientes
-        {
-            // para las rooms dinamicas
-            var roomsList = rooms.Select(room => new
-            {
-                RoomName = room.Key,  //? Nombre de la sala
-                User = room.Value.Count, //? Contar los usuarios en la sala
-                //? lista de miembros de rooms
-                Members = room.Value.Select(
-                    con => usersName.ContainsKey(con) ? usersName[con] : "Anonimo"
-                    ).ToArray()//? lista de miembros de rooms
-            }).ToArray();
-            var message = new
-            {
-                Action_Type = "rooms",
-                Value = new
-                {
-                    Name = "",
-                    Msg = "",
-                    Rooms = roomsList
-                }
-            };
-            string jsonMessage = JsonConvert.SerializeObject(message);
-            foreach (IWebSocketConnection connection in users)
-            {
-                connection.Send(jsonMessage);
+                    RoomName = room.RoomName,
+                    Password = room.Password,
+                    users = room.users
+                };
+                string jsonMessage = JsonConvert.SerializeObject(message);
+                socket.Send(jsonMessage);
             }
-        }
-        private static void Notification(string change) //* Notificación de que un cliente creo, de unio o dejo una sala
-        {
-            foreach (IWebSocketConnection client in users)
-            {
-                client.Send(change);
-            }
-
         }
 
     }
